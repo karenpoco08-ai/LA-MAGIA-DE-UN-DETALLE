@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> LA MAGIA DE UN DETALLE</title>
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/header.css">
+    
+</head>
+<body>
+   
+    <header class="site-header">
+    <nav class="navbar">
+        <a href="inicio.html" class="logo">LA MAGIA DE UN DETALLE</a>
+
+        <ul class="nav-links">
+            <li><a href="inicio.html">INICIO</a></li>
+            <li><a href="catalogo.html" class="activo">CATÁLOGO</a></li>
+            <li><a href="contacto.html">CONTACTO</a></li>
+            <li><a href="cotizacion.html">COTIZACIÓN</a></li>
+            <li><a href="factura.html">FACTURACIÓN</a></li>
+            <li><a href="index.html" class="cart-button">🛒 CARRITO<span id="cart-count" hidden>0</span></a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="container ">
+    <!--listado de productos-->
+    <main>
+        <h2>Productos Disponibles</h2>
+
+        <div class="products-grid" id="products-grid"></div>
+    </main>
+
+
+    <aside class="cart-section">
+
+        <div class="cart-title">
+            Tu Carrito
+        </div>
+
+
+        <ul class="cart-items" id="cart-items">
+            <p class="empty-cart">
+                El carrito está vacío
+            </p>
+        </ul>
+
+
+        <div class="cart-total">
+            <span>Total:</span>
+            <span id="cart-total-price">$0.00</span>
+        </div>
+
+
+        <button class="btn-checkout" onclick="generarFactura()">
+            Generar Factura PDF
+        </button>
+
+    </aside>
+</div>
+
+<footer class="site-footer cart-footer">
+    <p>© 2026 LA MAGIA DE UN DETALLE - DESARROLLADO POR MARIBEL AREVALO Y KAREN POVEDA</p>
+</footer>
+
+<script>
+    const products = [
+{ id: 1, name: ' CLAVELES', price: 10.000, image: "IMAGENES/claveles.jpg"},
+{ id: 2, name: 'DESAYUNOS', price: 20.000, image: "IMAGENES/desayuno.jpg"},
+{ id: 3, name: 'GIRASOL', price: 12.000, image: "IMAGENES/girasol.jpg"},
+{ id: 4, name: 'MANILLAS', price: 7.000, image: "IMAGENES/manillas.jpg"},
+{ id: 5, name: 'STITCH', price: 30.000, image: "IMAGENES/stitch.jpg"},
+{ id: 3, name: 'OSO', price: 25.000, image: "IMAGENES/oso.jpg"},
+{ id: 3, name: 'ROSAS', price: 15.000, image: "IMAGENES/rosas.jpg"}
+    ];
+    let cart = JSON.parse(localStorage.getItem("carrito")) || [];
+    
+ // Renderizar productos en la interfaz
+ 
+function renderProducts(){
+
+    const grid=document.getElementById("products-grid");
+
+    grid.innerHTML = products.map(product => `
+
+        <div class="product-card">
+
+            <img src="${product.image}" 
+                 alt="${product.name}">
+
+            <h3 class="product-title">
+                ${product.name}
+            </h3>
+
+            <div class="product-price">
+                $${product.price.toLocaleString("es-CO")}
+            </div>
+
+            <label class="presentation-label" for="presentacion-${product.id}">Presentación</label>
+            <select class="presentation-select" id="presentacion-${product.id}">
+                <option value="Unidad">Unidad</option>
+                <option value="Ramo">Ramo</option>
+                <option value="Docena">Docena</option>
+            </select>
+
+            <button class="btn-add"
+              onclick="addToCart(${product.id})">
+
+                Agregar al Carrito
+
+            </button>
+
+        </div>
+
+    `).join("");
+
+}
+
+
+ 
+function addToCart(id){
+
+    const product = products.find(p => p.id === id);
+    const select = document.getElementById(`presentacion-${id}`);
+    const presentacion = select ? select.value : "Unidad";
+
+    // La combinación producto + presentación es un elemento diferente.
+    // Así se puede tener, por ejemplo, 1 Unidad y 1 Ramo del mismo tipo de rosa.
+    const item = cart.find(p => p.id === id && (p.presentacion || "Unidad") === presentacion);
+
+    if(item){
+        item.quantity++;
+    }else{
+        cart.push({
+            ...product,
+            quantity: 1,
+            presentacion: presentacion
+        });
+    }
+
+    saveCart();
+    renderCart();
+
+}
+
+
+
+function removeFromCart(id, presentacion){
+
+    cart = cart.filter(
+        item => !(item.id === id && (item.presentacion || "Unidad") === presentacion)
+    );
+
+
+    saveCart();
+    renderCart();
+
+}
+
+
+
+function saveCart(){
+
+    localStorage.setItem(
+        "carrito",
+        JSON.stringify(cart)
+    );
+
+}
+
+
+
+function formatearMoneda(valor){
+    return new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        maximumFractionDigits: 0
+    }).format(valor);
+}
+
+
+function renderCart(){
+
+    const list=document.getElementById("cart-items");
+    const count=document.getElementById("cart-count");
+    const total=document.getElementById("cart-total-price");
+
+
+    let totalItems = cart.reduce(
+        (sum,item)=>sum+item.quantity,
+        0
+    );
+
+
+    count.textContent = totalItems;
+
+
+    if(cart.length===0){
+
+        list.innerHTML =
+        '<p class="empty-cart">El carrito está vacío</p>';
+
+        total.textContent="$0";
+
+        return;
+
+    }
+
+
+
+    let totalCompra=0;
+
+
+    list.innerHTML = cart.map(item=>{
+
+        let subtotal =
+        item.price * item.quantity;
+
+
+        totalCompra += subtotal;
+
+
+        return `
+
+        <li class="cart-item">
+
+            <div class="cart-item-details">
+                <strong>${item.name}</strong>
+                <span class="cart-item-presentation">${item.quantity} × ${item.presentacion || "Unidad"}</span>
+                <span class="cart-item-price">${formatearMoneda(item.price)} c/u · Subtotal: ${formatearMoneda(subtotal)}</span>
+            </div>
+
+            <button class="btn-remove"
+             onclick="removeFromCart(${item.id}, '${item.presentacion || "Unidad"}')">
+
+             Eliminar
+
+            </button>
+
+        </li>
+
+        `;
+
+    }).join("");
+
+
+
+    total.textContent =
+    "$"+totalCompra.toLocaleString("es-CO");
+
+}
+
+
+
+
+function generarFactura(){
+
+    if(cart.length===0){
+
+        alert("El carrito está vacío");
+
+        return;
+
+    }
+
+
+    saveCart();
+
+    window.location.href="factura.html";
+
+}
+
+
+
+renderProducts();
+renderCart();
+
+</script>
+
+
+</body>
+</html>
